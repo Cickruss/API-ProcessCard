@@ -5,7 +5,7 @@ const { requests, blocks, cancellations, exportData } = require('../App');
     const processController = {
         create: async(req,res) => {
             try {
-                const request = {
+                /*const request = {
                     type: null,
                     date: null,
                     id: null,
@@ -18,7 +18,9 @@ const { requests, blocks, cancellations, exportData } = require('../App');
                     password: null,
                 }
 
-                const response = await RequestModel.create(request)
+                const response = await RequestModel.create(request)*/
+
+                console.log("Solicitações: ",requests,"\nBloqueios: ", blocks, "\nCancelamentos: ",cancellations);
             } catch (error) {
                 console.log(error)
                 res.json({msg: error})

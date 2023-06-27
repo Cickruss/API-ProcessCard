@@ -52,10 +52,9 @@ app.get('/', (req, res) => {
 
       exportData(requests, blocks, cancellations)
       module.exports = { exportData, requests, blocks, cancellations };
-      
-      console.log("Solicitações: ",requests,"\nBloqueios: ", blocks, "\nCancelamentos: ",cancellations);
+
   
-      res.send('Uploaded file!');
+      res.redirect('/success');
     });
   });
 
