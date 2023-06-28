@@ -8,7 +8,7 @@ const requestSchema = new Schema({
         required: true
     },
     date: {
-        type: Date,
+        type: Number,
         required: true
     },
     id: {
@@ -29,11 +29,11 @@ const requestSchema = new Schema({
     },
     name: {
         type: String,
-        required: true
+        required: false
     },
     nameForCard: {
         type: String,
-        required: true
+        required: false
     },
     dueDate: {
         type: Number,
@@ -53,7 +53,7 @@ const blockSchema = new Schema({
         required: true
     },
     date: {
-        type: Date,
+        type: Number,
         required: true
     },
     id: {
