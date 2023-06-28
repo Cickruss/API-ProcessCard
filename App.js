@@ -37,12 +37,9 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       
       treatFile(data, requests, blocks, cancellations)
 
-      console.log(requests,"\n",blocks,"\n",cancellations,"\n")
-
       ProcessRequests(requests)
-      //ProcessBlocks(blocks)
-      //ProcessCancellations(cancellations)
-
+      ProcessBlocks(blocks)
+      ProcessCancellations(cancellations)
 
       res.send("uploaded files!") 
     });
@@ -52,7 +49,7 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
     const lines = data.split('\n');
   
       lines.forEach((line) => {
-        line = line.toString().replace(/\s/g, '')
+        line = line.trim()
   
         if (line.startsWith('01')) {
           requests.push(line)
@@ -106,28 +103,26 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
   function splitRequestString(requestString) {
     const partsLengths = [2, 8, 6, 4, 12, 11, -1, 2, 8];
     const parts = [];
-  
     let startIndex = 0;
   
     for (let i = 0; i < partsLengths.length; i++) {
       const partLength = partsLengths[i];
-
+      
       if (partLength === -1) {
 
-        const regex = /[^a-zA-Z]/g;
-        const matches = requestString.match(regex);
-        const characters = matches ? matches.join('') : '';
-        const result = requestString.replace(regex, '');
-        parts.push(characters);
+        const regex = /[a-zA-Z\s]/g;
+        const matches = requestString.match(regex)
+        const characters = matches.join('')
+        parts.push(characters.trim());
+        requestString = requestString.replace(regex, '')
       }
       else{
-        const part = requestString.substr(startIndex, partLength);
-        parts.push(part);
+        const part = requestString.substr(startIndex, partLength)
+        parts.push(part)
       }
       
       startIndex += partLength;
     }
-    
     const partsJson = {
       "type" : parts[0],
       "date" : parts[1],
@@ -139,6 +134,7 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       "dueDate" : parts[7],
       "password" : parts[8],
     }
+    console.log("JSON: ", partsJson)
     return partsJson
   }
 
