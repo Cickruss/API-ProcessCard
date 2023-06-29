@@ -6,6 +6,7 @@ const fs = require('fs');
 const { Request: RequestModel } = require("./models/Process")
 const { Block: BlockModel } = require("./models/Process")
 const { Cancellation: CancellationModel } = require("./models/Process")
+const {Account: AccountModel} = require("./models/Account")
 
 const upload = multer({ dest: 'uploads/' });
 
@@ -15,6 +16,8 @@ app.use(express.json())
 
 const conn = require("./db/conn")
 conn()
+
+let errorsFile = ''
 
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/page/index.html')
@@ -35,19 +38,24 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       const blocks = new Array
       const cancellations = new Array
       const trailer = ''
+
       
-      treatFile(data, requests, blocks, cancellations)
+      TreatFile(data, requests, blocks, cancellations)
 
       ProcessRequests(requests)
       ProcessBlocks(blocks)
       ProcessCancellations(cancellations)
       
 
-      res.send("uploaded files!") 
+      res.redirect("/download") 
     });
   });
 
-  function treatFile(data, requests, blocks, cancellations) {
+  app.get("/download", (req, res) => {
+    res.send(header)
+  })
+
+  function TreatFile(data, requests, blocks, cancellations) {
     const lines = data.split('\n');
   
     for (let line of lines) {
@@ -67,9 +75,10 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       }
   }
 
+
   async function ProcessRequests(requests) {
     for (let i = 0; i < requests.length; i++) {
-        const partsJson = splitRequestString(requests[i])
+        const partsJson = SplitRequestString(requests[i])
         console.log(partsJson)
       try {
         const response = await RequestModel.create(partsJson)
@@ -82,8 +91,14 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
   }
   async function ProcessBlocks(blocks) {
     for (let i = 0; i < blocks.length; i++) {
-      const partsJson = splitBlockOrCancellationsString(blocks[i])
-      console.log(partsJson)
+      
+      const partsJson = SplitBlockOrCancellationsString(blocks[i])
+      if (partsJson == 1){
+        console.log("rompeu o loop");
+        continue
+        
+      } 
+      console.log("partes: ", partsJson)
       try {
         const response = await BlockModel.create(partsJson)
         console.log("Blocks uploaded in db!")
@@ -91,11 +106,12 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
         console.log(error)
       }
       
+      
   }
   }
   async function ProcessCancellations(cancellations) {
     for (let i = 0; i < cancellations.length; i++) {
-      const partsJson = splitBlockOrCancellationsString(cancellations[i])
+      const partsJson = SplitBlockOrCancellationsString(cancellations[i])
       console.log(partsJson)
       try {
         const response = await CancellationModel.create(partsJson)
@@ -105,7 +121,9 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       }
   }
   }
-  function splitRequestString(requestString) {
+
+
+  function SplitRequestString(requestString) {
     const partsLengths = [2, 8, 6, 4, 12, 11, -1, 2, 8];
     const parts = [];
     let startIndex = 0;
@@ -128,21 +146,23 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       
       startIndex += partLength;
     }
+
     const partsJson = {
-      "type" : parts[0],
-      "date" : parts[1],
-      "id" : parts[2],
-      "agency" : parts[3],
-      "account" : parts[4],
-      "cpf" : parts[5],
+      "type" : parseInt(parts[0]),
+      "date" : parseInt(parts[1]),
+      "id" : parseInt(parts[2]),
+      "agency" : parseInt(parts[3]),
+      "account" : parseInt(parts[4]),
+      "cpf" : parseInt(parts[5]),
       "name" : parts[6],
-      "dueDate" : parts[7],
-      "password" : parts[8],
+      "nameForCard" : CreateNameForCard(parts[6]),
+      "dueDate" : parseInt(parts[7]),
+      "password" : parseInt(parts[8]),
     }
     console.log("JSON: ", partsJson)
     return partsJson
   }
-  function splitBlockOrCancellationsString(blockOrCancallationsStrings) {
+  function SplitBlockOrCancellationsString(blockOrCancallationsStrings) {
     const partsLengths = [2, 8, 6, 4, 12, 2, 6];
     const parts = [];
   
@@ -156,19 +176,78 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
     }
     
     const partsJson = {
-      "type" : parts[0],
-      "date" : parts[1],
-      "id" : parts[2],
-      "agency" : parts[3],
-      "account" : parts[4],
-      "motive" : parts[5],
-      "idAction" : parts[6],
+      "type" : parseInt(parts[0]) ,
+      "date" : parseInt(parts[1]),
+      "id" : parseInt(parts[2]),
+      "agency" : parseInt(parts[3]),
+      "account" : parseInt(parts[4]),
+      "motive" : parseInt(parts[5]),
+      "idAction" : parseInt(parts[6]),
     }
-    return partsJson;
+
+    if (partsJson.type === 2) {
+      const error = ValidateAccountAndAgency(partsJson.type, partsJson.date, partsJson.id, partsJson.account, partsJson.agency)
+      if (error !== 0) {
+        return 1
+      }
+      return partsJson
+
+    }else if (partsJson.type === 3) {
+
+      
+
+      return partsJson;
+    }
+
   }
   
   
-  
+  async function ValidateAccountAndAgency(type, date, id, account, agency) {
+    var error = 0
+    try {
+      const accountInDatabase = await AccountModel.findOne({ account })
+      if (!accountInDatabase) {
+        error = 1
+        console.log(error,"account not exist")
+      } else if (accountInDatabase.agency !== agency) {
+        error = 2
+        console.log(error, "agency incorrect");
+      }
+
+      if (error !== 0) {
+        let lineError = type.toString()
+        lineError += date.toString() + id.toString() + error.toString() + '\n'
+        errorsFile += lineError
+        console.log(errorsFile);
+        return 1
+      }
+      return 0
+    } catch (error) {
+      console.log(error)
+    }
+    
+  }
+
+  /*async function ValidateStateforBlock(account) {
+    var lineError = 0
+    const accountInDatabase = await AccountModel.findOne({ account })
+    if (!(accountInDatabase.state === "actived")) {
+      lineError = 3
+      console.log(lineError)
+      return
+    }
+    return
+  }*/
+
+  function CreateNameForCard(name) {
+    const names = name.split(' ')
+    const firstName = names[0]
+    const lastName = names[names.length - 1]
+    const nameForCard = firstName + ' ' + lastName
+
+    return nameForCard
+  }
+
   app.listen(PORT, () => {
     console.log('Servidor on: http://localhost:3000');
   });

@@ -29,11 +29,11 @@ const requestSchema = new Schema({
     },
     name: {
         type: String,
-        required: false
+        required: true
     },
     nameForCard: {
         type: String,
-        required: false
+        required: true
     },
     dueDate: {
         type: Number,
