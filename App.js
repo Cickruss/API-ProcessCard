@@ -30,16 +30,18 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       if (err) {
         return res.status(500).send(err);
       }
-      
-      const requests = [];
-      const blocks = [];
-      const cancellations = [];
+      const header = '';
+      const requests = new Array
+      const blocks = new Array
+      const cancellations = new Array
+      const trailer = ''
       
       treatFile(data, requests, blocks, cancellations)
 
       ProcessRequests(requests)
       ProcessBlocks(blocks)
       ProcessCancellations(cancellations)
+      
 
       res.send("uploaded files!") 
     });
@@ -48,17 +50,23 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
   function treatFile(data, requests, blocks, cancellations) {
     const lines = data.split('\n');
   
-      lines.forEach((line) => {
+    for (let line of lines) {
         line = line.trim()
-  
-        if (line.startsWith('01')) {
+        if (line.startsWith('00')) {
+          header = line
+          console.log("Header: ", header)
+        } else if (line.startsWith('01')) {
           requests.push(line)
         } else if (line.startsWith('02')) {
           blocks.push(line)
         } else if (line.startsWith('03')) {
           cancellations.push(line)
+        } else if (line.startsWith('99')){
+          trailer = line
+          console.log("\nTrailer: ", trailer)
+          break;
         }
-      })
+      }
   }
 
   async function ProcessRequests(requests) {
@@ -73,7 +81,7 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       }
     }
     
-}
+  }
   async function ProcessBlocks(blocks) {
     for (let i = 0; i < blocks.length; i++) {
       const partsJson = splitBlockOrCancellationsString(blocks[i])
@@ -99,7 +107,6 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
       }
   }
   }
-
   function splitRequestString(requestString) {
     const partsLengths = [2, 8, 6, 4, 12, 11, -1, 2, 8];
     const parts = [];
@@ -137,7 +144,6 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
     console.log("JSON: ", partsJson)
     return partsJson
   }
-
   function splitBlockOrCancellationsString(blockOrCancallationsStrings) {
     const partsLengths = [2, 8, 6, 4, 12, 2, 6];
     const parts = [];
