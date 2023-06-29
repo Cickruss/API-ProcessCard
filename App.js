@@ -54,7 +54,6 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
         line = line.trim()
         if (line.startsWith('00')) {
           header = line
-          console.log("Header: ", header)
         } else if (line.startsWith('01')) {
           requests.push(line)
         } else if (line.startsWith('02')) {
@@ -63,7 +62,6 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
           cancellations.push(line)
         } else if (line.startsWith('99')){
           trailer = line
-          console.log("\nTrailer: ", trailer)
           break;
         }
       }
