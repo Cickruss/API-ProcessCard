@@ -228,16 +228,7 @@ app.post('/', upload.single('htmlFile'), (req, res) => {
     
   }
 
-  /*async function ValidateStateforBlock(account) {
-    var lineError = 0
-    const accountInDatabase = await AccountModel.findOne({ account })
-    if (!(accountInDatabase.state === "actived")) {
-      lineError = 3
-      console.log(lineError)
-      return
-    }
-    return
-  }*/
+  // Validate staet for transantion
 
   function CreateNameForCard(name) {
     const names = name.split(' ')
